@@ -1,328 +1,370 @@
+import logging
+import json
+import io
+
+from port.api.commands import (CommandSystemDonate, CommandSystemExit, CommandUIRender)
 import port.api.props as props
-from port.api.commands import (CommandSystemDonate, CommandUIRender, CommandSystemExit)
+import port.instagram as instagram
 
-import pandas as pd
-import zipfile
 
-def process(session_id: str):
-    platform = "Platform of interest"
+LOG_STREAM = io.StringIO()
 
-    # Start of the data donation flow
+logging.basicConfig(
+    stream=LOG_STREAM,
+    level=logging.INFO,
+    format="%(asctime)s --- %(name)s --- %(levelname)s --- %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%S%z",
+)
+
+LOGGER = logging.getLogger("script")
+
+# Headers
+SUBMIT_FILE_HEADER = props.Translatable({
+    "en": "Select your Instagram file", 
+    "nl": "Selecteer uw Instagram bestand"
+})
+
+REVIEW_DATA_HEADER = props.Translatable({
+    "en": "Your Instagram data", 
+    "nl": "Uw Instagram gegevens"
+})
+
+RETRY_HEADER = props.Translatable({
+    "en": "Try again", 
+    "nl": "Probeer opnieuw"
+})
+
+
+def process(session_id):
+    LOGGER.info("Starting the donation flow")
+    yield donate_logs(f"{session_id}-tracking")
+
+
+    platform_name = "Instagram"
+    table_list = None
+
     while True:
-        # Ask the participant to submit a file
-        file_prompt = generate_file_prompt(platform, "application/zip, text/plain")
-        file_prompt_result = yield render_page(platform, file_prompt)
+        LOGGER.info("Prompt for file for %s", platform_name)
+        yield donate_logs(f"{session_id}-tracking")
 
-        # If the participant submitted a file: continue
-        if file_prompt_result.__type__ == 'PayloadString':
+        file_prompt = generate_file_prompt("application/zip")
+        file_result = yield render_page(SUBMIT_FILE_HEADER, file_prompt)
 
-            # Validate the file the participant submitted
-            # In general this is wise to do 
-            is_data_valid = validate_the_participants_input(file_prompt_result.value)
+        if file_result.__type__ == "PayloadString":
+            validation = instagram.validate_zip(file_result.value)
 
-            # Happy flow:
-            # The file the participant submitted is valid
-            if is_data_valid == True:
+            # Flow logic
+            # Happy flow: Valid DDP
+            if validation.status_code.id == 0:
+                LOGGER.info("Payload for %s", platform_name)
+                yield donate_logs(f"{session_id}-tracking")
 
-                # Extract the data you as a researcher are interested in, and put it in a pandas DataFrame
-                # Show this data to the participant in a table on screen
-                # The participant can now decide to donate
-                extracted_data = extract_the_data_you_are_interested_in(file_prompt_result.value)
-                consent_prompt = generate_consent_prompt(extracted_data)
-                consent_prompt_result = yield render_page(platform, consent_prompt)
-
-                # If the participant wants to donate the data gets donated
-                if consent_prompt_result.__type__ == "PayloadJSON":
-                    yield donate(f"{session_id}-{platform}", consent_prompt_result.value)
-
+                extraction_result = extract_instagram(file_result.value)
+                table_list = extraction_result
+                print("====")
+                print(table_list)
                 break
 
-            # Sad flow:
-            # The data was not valid, ask the participant to retry
-            if is_data_valid == False:
-                retry_prompt = generate_retry_prompt(platform)
-                retry_prompt_result = yield render_page(platform, retry_prompt)
+            # Enter retry flow, reason: if DDP was not a Instagram DDP
+            if validation.status_code.id != 0:
+                LOGGER.info("Not a valid %s zip; No payload; prompt retry_confirmation", platform_name)
+                yield donate_logs(f"{session_id}-tracking")
+                retry_result = yield render_page(RETRY_HEADER, retry_confirmation(platform_name))
 
-                # The participant wants to retry: start from the beginning
-                if retry_prompt_result.__type__ == 'PayloadTrue':
+                if retry_result.__type__ == "PayloadTrue":
                     continue
-                # The participant does not want to retry or pressed skip
                 else:
+                    LOGGER.info("Skipped during retry flow")
+                    yield donate_logs(f"{session_id}-tracking")
+                    yield donate_status(f"{session_id}-SKIP-RETRY-FLOW", "SKIP_RETRY_FLOW")
                     break
 
-        # The participant did not submit a file and pressed skip
         else:
+            LOGGER.info("Skipped at file selection ending flow")
+            yield donate_logs(f"{session_id}-tracking")
+            yield donate_status(f"{session_id}-SKIP-FILE-SELECTION", "SKIP_FILE_SELECTION")
             break
 
-    yield exit_port(0, "Success")
+
+    if table_list is not None:
+        LOGGER.info("Prompt consent; %s", platform_name)
+        yield donate_logs(f"{session_id}-tracking")
+        prompt = create_consent_form(table_list)
+        consent_result = yield render_page(REVIEW_DATA_HEADER, prompt)
+
+        # Data was donated
+        if consent_result.__type__ == "PayloadJSON":
+            LOGGER.info("Data donated; %s", platform_name)
+            yield donate(f"{session_id}-{platform_name}", consent_result.value)
+            yield donate_logs(f"{session_id}-tracking")
+            yield donate_status(f"{session_id}-DONATED", "DONATED")
+
+    yield exit(0, "Success")
     yield render_end_page()
 
 
-def extract_the_data_you_are_interested_in(zip_file: str) -> pd.DataFrame:
+##################################################################
+
+def create_consent_form(table_list: list[props.PropsUIPromptConsentFormTable]) -> props.PropsUIPromptConsentForm:
     """
-    This function extracts the data the researcher is interested in
-
-    In this case we extract from the zipfile:
-    * The file names
-    * The compressed file size
-    * The file size
-
-    You could extract anything here
+    Assembles all donated data in consent form to be displayed
     """
-    out = pd.DataFrame()
-
-    try:
-        file = zipfile.ZipFile(zip_file)
-        data = []
-        for name in file.namelist():
-            info = file.getinfo(name)
-            data.append((name, info.compress_size, info.file_size))
-
-        out = pd.DataFrame(data, columns=["File name", "Compressed file size", "File size"])
-
-    except Exception as e:
-        print(f"Something went wrong: {e}")
-
-    return out
+    return props.PropsUIPromptConsentForm(table_list, meta_tables=[])
 
 
-def validate_the_participants_input(zip_file: str) -> bool:
-    """
-    Check if the participant actually submitted a zipfile
-    Returns True if participant submitted a zipfile, otherwise False
+def donate_logs(key):
+    log_string = LOG_STREAM.getvalue()  # read the log stream
+    if log_string:
+        log_data = log_string.split("\n")
+    else:
+        log_data = ["no logs"]
 
-    In reality you need to do a lot more validation.
-    Some things you could check:
-    - Check if the the file(s) are the correct format (json, html, binary, etc.)
-    - If the files are in the correct language
-    """
+    return donate(key, json.dumps(log_data))
 
-    try:
-        with zipfile.ZipFile(zip_file) as zf:
-            return True
-    except zipfile.BadZipFile:
-        return False
+
+def donate_status(filename: str, message: str):
+    return donate(filename, json.dumps({"status": message}))
 
 
 def render_end_page():
-    """
-    Renders a thank you page
-    """
     page = props.PropsUIPageEnd()
     return CommandUIRender(page)
 
 
-def render_page(platform: str, body):
-    """
-    Renders the UI components
-    """
-    header = props.PropsUIHeader(props.Translatable({"en": platform, "nl": platform }))
+def render_page(header_text, body):
+    header = props.PropsUIHeader(header_text)
+
     footer = props.PropsUIFooter()
+    platform = "Instagram"
     page = props.PropsUIPageDonation(platform, header, body, footer)
     return CommandUIRender(page)
 
 
-def generate_retry_prompt(platform: str) -> props.PropsUIPromptConfirm:
-    text = props.Translatable({
-        "en": f"Unfortunately, we cannot process your {platform} file. Continue, if you are sure that you selected the right file. Try again to select a different file.",
-        "nl": f"Helaas, kunnen we uw {platform} bestand niet verwerken. Weet u zeker dat u het juiste bestand heeft gekozen? Ga dan verder. Probeer opnieuw als u een ander bestand wilt kiezen."
-    })
-    ok = props.Translatable({
-        "en": "Try again",
-        "nl": "Probeer opnieuw"
-    })
-    cancel = props.Translatable({
-        "en": "Continue",
-        "nl": "Verder"
-    })
+def retry_confirmation(platform):
+    text = props.Translatable(
+        {
+            "en": f"Unfortunately, we could not process your {platform} file. If you are sure that you selected the correct file, press Continue. To select a different file, press Try again.",
+            "nl": f"Helaas, kunnen we uw {platform} bestand niet verwerken. Weet u zeker dat u het juiste bestand heeft gekozen? Ga dan verder. Probeer opnieuw als u een ander bestand wilt kiezen."
+        }
+    )
+    ok = props.Translatable({"en": "Try again", "nl": "Probeer opnieuw"})
+    cancel = props.Translatable({"en": "Continue", "nl": "Verder"})
     return props.PropsUIPromptConfirm(text, ok, cancel)
 
 
-def generate_file_prompt(platform, extensions) -> props.PropsUIPromptFileInput:
-    description = props.Translatable({
-        "en": f"Please follow the download instructions and choose the file that you stored on your device. Click “Skip” at the right bottom, if you do not have a {platform} file. ",
-        "nl": f"Volg de download instructies en kies het bestand dat u opgeslagen heeft op uw apparaat. Als u geen {platform} bestand heeft klik dan op “Overslaan” rechts onder."
-    })
-    return props.PropsUIPromptFileInput(description, extensions)
+
+##################################################################
+# Extraction function
 
 
-def generate_consent_prompt(*args: pd.DataFrame) -> props.PropsUIPromptConsentForm:
-    description = props.Translatable({
-       "en": "Below you will find meta data about the contents of the zip file you submitted. Please review the data carefully and remove any information you do not wish to share. If you would like to share this data, click on the 'Yes, share for research' button at the bottom of this page. By sharing this data, you contribute to research <insert short explanation about your research here>.",
-       "nl": "Hieronder ziet u gegevens over de zip die u heeft ingediend. Bekijk de gegevens zorgvuldig, en verwijder de gegevens die u niet wilt delen. Als u deze gegevens wilt delen, klik dan op de knop 'Ja, deel voor onderzoek' onderaan deze pagina. Door deze gegevens te delen draagt u bij aan onderzoek over <korte zin over het onderzoek>."
-    })
+def extract_instagram(instagram_zip: str) -> list[props.PropsUIPromptConsentFormTable]:
+    tables_to_render = []
 
-    donate_question = props.Translatable({
-       "en": "Do you want to share this data for research?",
-       "nl": "Wilt u deze gegevens delen voor onderzoek?"
-    })
-
-    donate_button = props.Translatable({
-       "en": "Yes, share for research",
-       "nl": "Ja, deel voor onderzoek"
-    })
-
-    tables = [] 
-    for index, df in enumerate(args):
+    df = instagram.posts_viewed_to_df(instagram_zip)
+    if not df.empty:
         table_title = props.Translatable({
-            "en": f"The contents of your zipfile contents (Table {index + 1}/{len(args)})",
-            "nl": "De inhoud van uw zip bestand"
+            "en": "Posts viewed on Instagram",
+            "nl": "Posts viewed on Instagram"
+        })
+        table_description = props.Translatable({
+            "en": "In this table you find the accounts of posts you viewed on Instagram sorted over time. Below, you find visualizations of different parts of this table. First, you find a timeline showing you the number of posts you viewed over time. Next, you find a histogram indicating how many posts you have viewed per hour of the day.", 
+            "nl": "In this table you find the accounts of posts you viewed on Instagram sorted over time. Below, you find visualizations of different parts of this table. First, you find a timeline showing you the number of posts you viewed over time. Next, you find a histogram indicating how many posts you have viewed per hour of the day.", 
+        })
+        total_watched = {
+            "title": {
+                "en": "The total number of Instagram posts you viewed over time", 
+                "nl": "The total number of Instagram posts you viewed over time", 
+            },
+            "type": "area",
+            "group": {
+                "column": "Date",
+                "dateFormat": "auto",
+            },
+            "values": [{
+                "label": "Count",
+                "aggregate": "count",
+            }]
+        }
+
+        hour_of_the_day = {
+            "title": {
+                "en": "The total number of Instagram posts you have viewed per hour of the day", 
+                "nl": "The total number of Instagram posts you have viewed per hour of the day", 
+            },
+            "type": "bar",
+            "group": {
+                "column": "Date",
+                "dateFormat": "hour_cycle",
+                "label": "Hour of the day",
+            },
+            "values": [{
+                "label": "Count"
+            }]
+        }
+
+        table =  props.PropsUIPromptConsentFormTable("instagram_posts_viewed", table_title, df, table_description, [total_watched, hour_of_the_day]) 
+        tables_to_render.append(table)
+
+    df = instagram.videos_watched_to_df(instagram_zip)
+    if not df.empty:
+        table_title = props.Translatable({
+            "en": "Videos watched on Instagram",
+            "nl": "Videos watched on Instagram"
+        })
+        table_description = props.Translatable({
+            "en": "In this table you find the accounts of videos you watched on Instagram sorted over time. Below, you find a timeline showing you the number of videos you watched over time.", 
+            "nl": "In this table you find the accounts of videos you watched on Instagram sorted over time. Below, you find a timeline showing you the number of videos you watched over time. ", 
+        })
+
+        total_watched = {
+            "title": {
+                "en": "The total number of videos watched on Instagram over time", 
+                "nl": "The total number of videos watched on Instagram over time", 
+            },
+            "type": "area",
+            "group": {
+                "column": "Date",
+                "dateFormat": "auto"
+            },
+            "values": [{
+                "aggregate": "count",
+                "label": "Count"
+            }]
+        }
+
+        table =  props.PropsUIPromptConsentFormTable("instagram_videos_watched", table_title, df, table_description, [total_watched]) 
+        tables_to_render.append(table)
+
+
+    df = instagram.post_comments_to_df(instagram_zip)
+    if not df.empty:
+        table_title = props.Translatable({
+            "en": "Comments on Instagram posts",
+            "nl": "Comments on Instagram posts",
+        })
+        table_description = props.Translatable({
+            "en": "In this table, you find the comments that you left behind on Instagram posts sorted over time. Below, you find a wordcloud, where the size of the word indicates how frequently that word has been used in these comments.", 
+            "nl": "In this table, you find the comments that you left behind on Instagram posts sorted over time. Below, you find a wordcloud, where the size of the word indicates how frequently that word has been used in these comments.", 
         })
         wordcloud = {
             "title": {
-                "en": "You can also add visualizations", 
-                "nl": "You can also add visualizations"
-            },
+                "en": "Most common words in comments on posts", 
+                "nl": "Most common words in comments on posts", 
+              },
             "type": "wordcloud",
-            "textColumn": "File name",
+            "textColumn": "Comment",
             "tokenize": True,
         }
-        tables.append(props.PropsUIPromptConsentFormTable(f"zip_contents_{index}", table_title, df, visualizations=[wordcloud], delete_option=True))
+        table =  props.PropsUIPromptConsentFormTable("instagram_post_comments", table_title, df, table_description, [wordcloud]) 
+        tables_to_render.append(table)
 
-    return props.PropsUIPromptConsentForm(
-       tables,
-       [],
-       description = description,
-       donate_question = donate_question,
-       donate_button = donate_button
+    df = instagram.accounts_not_interested_in_to_df(instagram_zip)
+    if not df.empty:
+        table_title = props.Translatable({
+            "en": "Instagram accounts not interested in",
+            "nl": "Instagram accounts not interested in"
+        })
+        table_description = props.Translatable({
+            "en": "", 
+            "nl": "", 
+        })
+        table =  props.PropsUIPromptConsentFormTable("instagram_accounts_not_interested_in", table_title, df, table_description) 
+        tables_to_render.append(table)
+
+    df = instagram.posts_not_interested_in_to_df(instagram_zip)
+    if not df.empty:
+        table_title = props.Translatable({
+            "en": "Instagram posts not interested in",
+            "nl": "Instagram posts not interested in"
+        })
+        table_description = props.Translatable({
+            "en": "", 
+            "nl": "", 
+        })
+        table =  props.PropsUIPromptConsentFormTable("instagram_posts_not_interested_in", table_title, df, table_description) 
+        tables_to_render.append(table)
+
+
+    df = instagram.following_to_df(instagram_zip)
+    if not df.empty:
+        table_title = props.Translatable({
+            "en": "Accounts that you follow on Instagram",
+            "nl": "Accounts that you follow on Instagram"
+        })
+        table_description = props.Translatable({
+            "en": "In this table, you find the accounts that you follow on Instagram.", 
+            "nl": "In this table, you find the accounts that you follow on Instagram.", 
+        })
+        table =  props.PropsUIPromptConsentFormTable("instagram_following", table_title, df, table_description) 
+        tables_to_render.append(table)
+
+    df = instagram.liked_comments_to_df(instagram_zip)
+    if not df.empty:
+        table_title = props.Translatable({
+            "en": "Instagram liked comments",
+            "nl": "Instagram liked comments",
+        })
+        wordcloud = {
+            "title": {
+                "en": "Accounts who's comments you liked most", 
+                "nl": "Accounts who's comments you liked most", 
+              },
+            "type": "wordcloud",
+            "textColumn": "Account name",
+            "tokenize": False,
+        }
+        table_description = props.Translatable({
+            "en": "", 
+            "nl": "", 
+        })
+        table =  props.PropsUIPromptConsentFormTable("instagram_liked_comments", table_title, df, table_description, [wordcloud]) 
+        tables_to_render.append(table)
+
+    df = instagram.liked_posts_to_df(instagram_zip)
+    if not df.empty:
+        table_description = props.Translatable({
+            "en": "", 
+            "nl": "", 
+        })
+        wordcloud = {
+            "title": {
+                "en": "Most liked accounts", 
+                "nl": "Most liked accounts", 
+              },
+            "type": "wordcloud",
+            "textColumn": "Account name",
+            "tokenize": False,
+        }
+        table_title = props.Translatable({
+            "en": "Instagram liked posts",
+            "nl": "Instagram liked posts",
+        })
+        table_description = props.Translatable({
+            "en": "", 
+            "nl": "", 
+        })
+        table =  props.PropsUIPromptConsentFormTable("instagram_liked_posts", table_title, df, table_description, [wordcloud]) 
+        tables_to_render.append(table)
+
+    return tables_to_render
+
+
+
+
+##################################################################
+
+def generate_file_prompt(extensions):
+    description = props.Translatable(
+        {
+            "en": f"Please follow the download instructions and choose the file that you stored on your device.",
+            "nl": f"Volg de download instructies en kies het bestand dat u opgeslagen heeft op uw apparaat."
+        }
     )
+    return props.PropsUIPromptFileInput(description, extensions)
 
 
 def donate(key, json_string):
     return CommandSystemDonate(key, json_string)
 
-
-def exit_port(code, info):
+def exit(code, info):
     return CommandSystemExit(code, info)
-
-
-##################################################################################
-# Exercise for the reader
-
-# Add an extra table to the output
-# This table should calculate 2 aggegrate statistics about your the files in your zipfile
-
-# 1. it should give the total number of files in the zipfile
-# 2. it should give the total number of bytes of all files in the zipfile
-# 3. As a bonus: count the number of times the letter a occurs in all text files in the zipfile. By all means use AI to find out how to do this
-
-# Depending on your data the table could look like this:
-# | Statistic | Value |
-# -----------------------------
-# | Total number of files | 12 | 
-# | Total number of bytes | 762376 | 
-# | Total occurrences of 'a' in text files | 2378 | 
-
-
-##################################################################################
-# Hints
-
-# Hint 1: Write a function that extracts the statistics and put them in a dataframe. 
-#  In order to do that you can copy extract_the_data_you_are_interested_in() and then modify it so it extracts the total number of files and bytes
-
-# Hint 2: If you wrote that function, then
-# Changes these lines:
-# extracted_data = extract_the_data_you_are_interested_in(file_prompt_result.value)
-# consent_prompt = generate_consent_prompt(extracted_data)
-
-# to:
-# extracted_data = extract_the_data_you_are_interested_in(file_prompt_result.value)
-# extracted_data_statistics = extract_statistics_you_are_interested_in(file_prompt_result.value)
-# consent_prompt = generate_consent_prompt(extracted_data, extracted_data_statistics)
-
-##################################################################################
-# Answer:
-
-# Uncomment all these lines to see the answer in action
-
-#def extract_statistics_you_are_interested_in(zip_file: str) -> pd.DataFrame:
-#    """
-#    Function that extracts the desired statistics
-#    """
-#    out = pd.DataFrame()
-#    count = 0 
-#    total_number_of_bytes = 0
-#    total_a_count = 0
-#
-#    try:
-#        file = zipfile.ZipFile(zip_file)
-#        for name in file.namelist():
-#            info = file.getinfo(name)
-#            count += 1
-#            total_number_of_bytes += info.file_size
-#
-#            # Check if the file is a text file
-#            # if so, open it and count the letter a
-#            if name.endswith('.txt'):
-#                with file.open(name) as txt_file:
-#                    content = txt_file.read().decode('utf-8')
-#                    total_a_count += content.count('a')
-#
-#        data = [
-#            ("Total number of files", count),
-#            ("Total number of bytes", total_number_of_bytes),
-#            ("Total occurrences of 'a' in text files", total_a_count),
-#        ]
-#
-#        out = pd.DataFrame(data, columns=["Statistic", "Value"])
-#
-#    except Exception as e:
-#        print(f"Something went wrong: {e}")
-#
-#    return out
-#
-#
-#def process(session_id: str):
-#    platform = "Platform of interest"
-#
-#    # Start of the data donation flow
-#    while True:
-#        # Ask the participant to submit a file
-#        file_prompt = generate_file_prompt(platform, "application/zip, text/plain")
-#        file_prompt_result = yield render_page(platform, file_prompt)
-#
-#        # If the participant submitted a file: continue
-#        if file_prompt_result.__type__ == 'PayloadString':
-#
-#            # Validate the file the participant submitted
-#            # In general this is wise to do 
-#            is_data_valid = validate_the_participants_input(file_prompt_result.value)
-#
-#            # Happy flow:
-#            # The file the participant submitted is valid
-#            if is_data_valid == True:
-#
-#                # Extract the data you as a researcher are interested in, and put it in a pandas DataFrame
-#                # Show this data to the participant in a table on screen
-#                # The participant can now decide to donate
-#                extracted_data = extract_the_data_you_are_interested_in(file_prompt_result.value)
-#                extracted_data_statistics = extract_statistics_you_are_interested_in(file_prompt_result.value)
-#                consent_prompt = generate_consent_prompt(extracted_data, extracted_data_statistics)
-#                consent_prompt_result = yield render_page(platform, consent_prompt)
-#
-#                # If the participant wants to donate the data gets donated
-#                if consent_prompt_result.__type__ == "PayloadJSON":
-#                    yield donate(f"{session_id}-{platform}", consent_prompt_result.value)
-#
-#                break
-#
-#            # Sad flow:
-#            # The data was not valid, ask the participant to retry
-#            if is_data_valid == False:
-#                retry_prompt = generate_retry_prompt(platform)
-#                retry_prompt_result = yield render_page(platform, retry_prompt)
-#
-#                # The participant wants to retry: start from the beginning
-#                if retry_prompt_result.__type__ == 'PayloadTrue':
-#                    continue
-#                # The participant does not want to retry or pressed skip
-#                else:
-#                    break
-#
-#        # The participant did not submit a file and pressed skip
-#        else:
-#            break
-#
-#    yield exit_port(0, "Success")
-#    yield render_end_page()
-#
