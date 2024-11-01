@@ -116,17 +116,11 @@ def accounts_not_interested_in_to_df(instagram_zip: str) -> pd.DataFrame:
         for item in items:
             data = item.get("string_map_data", {})
             account_name = data.get("Username", {}).get("value", None),
-            if "Time" in data:
-                timestamp = data.get("Time", {}).get("timestamp", "")
-            else:
-                timestamp = data.get("Tijd", {}).get("timestamp", "")
 
             datapoints.append((
                 account_name,
-                eh.epoch_to_iso(timestamp)
             ))
-        out = pd.DataFrame(datapoints, columns=["Account name", "Date"]) #pyright: ignore
-        out = out.sort_values(by="Date", key=eh.sort_isotimestamp_empty_timestamp_last)
+        out = pd.DataFrame(datapoints, columns=["Account name"]) #pyright: ignore
 
     except Exception as e:
         logger.error("Exception caught: %s", e)
@@ -178,17 +172,13 @@ def posts_viewed_to_df(instagram_zip: str) -> pd.DataFrame:
         for item in items:
             data = item.get("string_map_data", {})
             account_name = data.get("Author", {}).get("value", None)
-            if "Time" in data:
-                timestamp = data.get("Time", {}).get("timestamp", "")
-            else:
-                timestamp = data.get("Tijd", {}).get("timestamp", "")
 
             datapoints.append((
                 account_name,
-                eh.epoch_to_iso(timestamp)
             ))
-        out = pd.DataFrame(datapoints, columns=["Author", "Date"]) #pyright: ignore
-        out = out.sort_values(by="Date", key=eh.sort_isotimestamp_empty_timestamp_last)
+        out = pd.DataFrame(datapoints, columns=["Author"]) #pyright: ignore
+        out = out.groupby('Author').size().reset_index(name='Count')
+        out = out.sort_values(by="Count", ascending=False).reset_index(drop=True)
 
     except Exception as e:
         logger.error("Exception caught: %s", e)
@@ -237,17 +227,13 @@ def videos_watched_to_df(instagram_zip: str) -> pd.DataFrame:
         for item in items:
             data = item.get("string_map_data", {})
             account_name = data.get("Author", {}).get("value", None)
-            if "Time" in data:
-                timestamp = data.get("Time", {}).get("timestamp", "")
-            else:
-                timestamp = data.get("Tijd", {}).get("timestamp", "")
 
             datapoints.append((
                 account_name,
-                eh.epoch_to_iso(timestamp)
             ))
-        out = pd.DataFrame(datapoints, columns=["Author", "Date"]) #pyright: ignore
-        out = out.sort_values(by="Date", key=eh.sort_isotimestamp_empty_timestamp_last)
+        out = pd.DataFrame(datapoints, columns=["Author"]) #pyright: ignore
+        out = out.groupby('Author').size().reset_index(name='Count')
+        out = out.sort_values(by="Count", ascending=False).reset_index(drop=True)
 
     except Exception as e:
         logger.error("Exception caught: %s", e)
@@ -275,24 +261,19 @@ def post_comments_to_df(instagram_zip: str) -> pd.DataFrame:
             for item in d:
                 data = item.get("string_map_data", {})
                 media_owner = data.get("Media Owner", {}).get("value", "")
-                comment = data.get("Comment", {}).get("value", "")
-                if "Time" in data:
-                    timestamp = data.get("Time", {}).get("timestamp", "")
-                else:
-                    timestamp = data.get("Tijd", {}).get("timestamp", "")
-
-                datapoints.append((
-                    media_owner,
-                    eh.fix_latin1_string(comment),
-                    eh.epoch_to_iso(timestamp)
-                ))
+                if media_owner != "":
+                    datapoints.append((
+                        media_owner,
+                    ))
             i += 1
 
         except Exception as e:
             logger.error("Exception caught: %s", e)
             return pd.DataFrame()
 
-    out = pd.DataFrame(datapoints, columns=["Media Owner", "Comment", "Date"]) #pyright: ignore
+    out = pd.DataFrame(datapoints, columns=["Media Owner"]) #pyright: ignore
+    out = out.groupby('Media Owner').size().reset_index(name='Count')
+    out = out.sort_values(by="Count", ascending=False).reset_index(drop=True)
 
     return out
 
@@ -312,11 +293,8 @@ def following_to_df(instagram_zip: str) -> pd.DataFrame:
             d = eh.dict_denester(item)
             datapoints.append((
                 eh.fix_latin1_string(eh.find_item(d, "value")),
-                eh.find_item(d, "href"),
-                eh.epoch_to_iso(eh.find_item(d, "timestamp"))
             ))
-        out = pd.DataFrame(datapoints, columns=["Account", "Link", "Date"]) #pyright: ignore
-        out = out.sort_values(by="Date", key=eh.sort_isotimestamp_empty_timestamp_last)
+        out = pd.DataFrame(datapoints, columns=["Account"]) #pyright: ignore
 
     except Exception as e:
         logger.error("Exception caught: %s", e)
@@ -340,11 +318,10 @@ def liked_comments_to_df(instagram_zip: str) -> pd.DataFrame:
             datapoints.append((
                 eh.fix_latin1_string(eh.find_item(d, "title")),
                 eh.fix_latin1_string(eh.find_item(d, "value")),
-                eh.find_items(d, "href"),
-                eh.epoch_to_iso(eh.find_item(d, "timestamp"))
             ))
-        out = pd.DataFrame(datapoints, columns=["Account name", "Value", "Link", "Date"]) #pyright: ignore
-        out = out.sort_values(by="Date", key=eh.sort_isotimestamp_empty_timestamp_last)
+        out = pd.DataFrame(datapoints, columns=["Account name", "Value"]) #pyright: ignore
+        out = out.groupby(['Account name', 'Value']).size().reset_index(name='Count')
+        out = out.sort_values(by="Count", ascending=False).reset_index(drop=True)
 
     except Exception as e:
         logger.error("Exception caught: %s", e)
@@ -367,223 +344,13 @@ def liked_posts_to_df(instagram_zip: str) -> pd.DataFrame:
             datapoints.append((
                 eh.fix_latin1_string(eh.find_item(d, "title")),
                 eh.fix_latin1_string(eh.find_item(d, "value")),
-                eh.find_items(d, "href"),
-                eh.epoch_to_iso(eh.find_item(d, "timestamp"))
             ))
-        out = pd.DataFrame(datapoints, columns=["Account name", "Value", "Link", "Date"]) #pyright: ignore
-        out = out.sort_values(by="Date", key=eh.sort_isotimestamp_empty_timestamp_last)
+        out = pd.DataFrame(datapoints, columns=["Account name", "Value"]) #pyright: ignore
+        out = out.groupby(['Account name', 'Value']).size().reset_index(name='Count') #pyright: ignore
+        out = out.sort_values(by="Count", ascending=False).reset_index(drop=True)
 
     except Exception as e:
         logger.error("Exception caught: %s", e)
 
     return out
-
-
-
-def extraction(instagram_zip: str) -> list[props.PropsUIPromptConsentFormTable]:
-    tables_to_render = []
-
-    df = posts_viewed_to_df(instagram_zip)
-    if not df.empty:
-        table_title = props.Translatable({
-            "en": "Posts viewed on Instagram",
-            "nl": "Posts viewed on Instagram"
-        })
-        table_description = props.Translatable({
-            "en": "In this table you find the accounts of posts you viewed on Instagram sorted over time. Below, you find visualizations of different parts of this table. First, you find a timeline showing you the number of posts you viewed over time. Next, you find a histogram indicating how many posts you have viewed per hour of the day.", 
-            "nl": "In this table you find the accounts of posts you viewed on Instagram sorted over time. Below, you find visualizations of different parts of this table. First, you find a timeline showing you the number of posts you viewed over time. Next, you find a histogram indicating how many posts you have viewed per hour of the day.", 
-        })
-        total_watched = {
-            "title": {
-                "en": "The total number of Instagram posts you viewed over time", 
-                "nl": "The total number of Instagram posts you viewed over time", 
-            },
-            "type": "area",
-            "group": {
-                "column": "Date",
-                "dateFormat": "auto",
-            },
-            "values": [{
-                "label": "Count",
-                "aggregate": "count",
-            }]
-        }
-
-        hour_of_the_day = {
-            "title": {
-                "en": "The total number of Instagram posts you have viewed per hour of the day", 
-                "nl": "The total number of Instagram posts you have viewed per hour of the day", 
-            },
-            "type": "bar",
-            "group": {
-                "column": "Date",
-                "dateFormat": "hour_cycle",
-                "label": "Hour of the day",
-            },
-            "values": [{
-                "label": "Count"
-            }]
-        }
-
-        table =  props.PropsUIPromptConsentFormTable("instagram_posts_viewed", table_title, df, table_description, [total_watched, hour_of_the_day]) 
-        tables_to_render.append(table)
-
-    df = videos_watched_to_df(instagram_zip)
-    if not df.empty:
-        table_title = props.Translatable({
-            "en": "Videos watched on Instagram",
-            "nl": "Videos watched on Instagram"
-        })
-        table_description = props.Translatable({
-            "en": "In this table you find the accounts of videos you watched on Instagram sorted over time. Below, you find a timeline showing you the number of videos you watched over time.", 
-            "nl": "In this table you find the accounts of videos you watched on Instagram sorted over time. Below, you find a timeline showing you the number of videos you watched over time. ", 
-        })
-
-        total_watched = {
-            "title": {
-                "en": "The total number of videos watched on Instagram over time", 
-                "nl": "The total number of videos watched on Instagram over time", 
-            },
-            "type": "area",
-            "group": {
-                "column": "Date",
-                "dateFormat": "auto"
-            },
-            "values": [{
-                "aggregate": "count",
-                "label": "Count"
-            }]
-        }
-
-        table =  props.PropsUIPromptConsentFormTable("instagram_videos_watched", table_title, df, table_description, [total_watched]) 
-        tables_to_render.append(table)
-
-
-    df = post_comments_to_df(instagram_zip)
-    if not df.empty:
-        table_title = props.Translatable({
-            "en": "Comments on Instagram posts",
-            "nl": "Comments on Instagram posts",
-        })
-        table_description = props.Translatable({
-            "en": "In this table, you find the comments that you left behind on Instagram posts sorted over time. Below, you find a wordcloud, where the size of the word indicates how frequently that word has been used in these comments.", 
-            "nl": "In this table, you find the comments that you left behind on Instagram posts sorted over time. Below, you find a wordcloud, where the size of the word indicates how frequently that word has been used in these comments.", 
-        })
-        wordcloud = {
-            "title": {
-                "en": "Most common words in comments on posts", 
-                "nl": "Most common words in comments on posts", 
-              },
-            "type": "wordcloud",
-            "textColumn": "Comment",
-            "tokenize": True,
-        }
-        table =  props.PropsUIPromptConsentFormTable("instagram_post_comments", table_title, df, table_description, [wordcloud]) 
-        tables_to_render.append(table)
-
-    df = accounts_not_interested_in_to_df(instagram_zip)
-    if not df.empty:
-        table_title = props.Translatable({
-            "en": "Instagram accounts not interested in",
-            "nl": "Instagram accounts not interested in"
-        })
-        table_description = props.Translatable({
-            "en": "", 
-            "nl": "", 
-        })
-        table =  props.PropsUIPromptConsentFormTable("instagram_accounts_not_interested_in", table_title, df, table_description) 
-        tables_to_render.append(table)
-
-    df = ads_viewed_to_df(instagram_zip)
-    if not df.empty:
-        table_title = props.Translatable({
-            "en": "Ads you viewed on Instagram",
-            "nl": "Ads you viewed on Instagram"
-        })
-        table_description = props.Translatable({
-            "en": "In this table, you find the ads that you viewed on Instagram sorted over time.", 
-            "nl": "In this table, you find the ads that you viewed on Instagram sorted over time.", 
-        })
-        table =  props.PropsUIPromptConsentFormTable("instagram_ads_viewed", table_title, df, table_description) 
-        tables_to_render.append(table)
-
-    df = posts_not_interested_in_to_df(instagram_zip)
-    if not df.empty:
-        table_title = props.Translatable({
-            "en": "Instagram posts not interested in",
-            "nl": "Instagram posts not interested in"
-        })
-        table_description = props.Translatable({
-            "en": "", 
-            "nl": "", 
-        })
-        table =  props.PropsUIPromptConsentFormTable("instagram_posts_not_interested_in", table_title, df, table_description) 
-        tables_to_render.append(table)
-
-
-    df = following_to_df(instagram_zip)
-    if not df.empty:
-        table_title = props.Translatable({
-            "en": "Accounts that you follow on Instagram",
-            "nl": "Accounts that you follow on Instagram"
-        })
-        table_description = props.Translatable({
-            "en": "In this table, you find the accounts that you follow on Instagram.", 
-            "nl": "In this table, you find the accounts that you follow on Instagram.", 
-        })
-        table =  props.PropsUIPromptConsentFormTable("instagram_following", table_title, df, table_description) 
-        tables_to_render.append(table)
-
-    df = liked_comments_to_df(instagram_zip)
-    if not df.empty:
-        table_title = props.Translatable({
-            "en": "Instagram liked comments",
-            "nl": "Instagram liked comments",
-        })
-        wordcloud = {
-            "title": {
-                "en": "Accounts who's comments you liked most", 
-                "nl": "Accounts who's comments you liked most", 
-              },
-            "type": "wordcloud",
-            "textColumn": "Account name",
-            "tokenize": False,
-        }
-        table_description = props.Translatable({
-            "en": "", 
-            "nl": "", 
-        })
-        table =  props.PropsUIPromptConsentFormTable("instagram_liked_comments", table_title, df, table_description, [wordcloud]) 
-        tables_to_render.append(table)
-
-    df = liked_posts_to_df(instagram_zip)
-    if not df.empty:
-        table_description = props.Translatable({
-            "en": "", 
-            "nl": "", 
-        })
-        wordcloud = {
-            "title": {
-                "en": "Most liked accounts", 
-                "nl": "Most liked accounts", 
-              },
-            "type": "wordcloud",
-            "textColumn": "Account name",
-            "tokenize": False,
-        }
-        table_title = props.Translatable({
-            "en": "Instagram liked posts",
-            "nl": "Instagram liked posts",
-        })
-        table_description = props.Translatable({
-            "en": "", 
-            "nl": "", 
-        })
-        table =  props.PropsUIPromptConsentFormTable("instagram_liked_posts", table_title, df, table_description, [wordcloud]) 
-        tables_to_render.append(table)
-
-    return tables_to_render
-
-
-
 

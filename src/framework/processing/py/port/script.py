@@ -170,39 +170,7 @@ def extract_instagram(instagram_zip: str) -> list[props.PropsUIPromptConsentForm
             "en": "In this table you find the accounts of posts you viewed on Instagram sorted over time. Below, you find visualizations of different parts of this table. First, you find a timeline showing you the number of posts you viewed over time. Next, you find a histogram indicating how many posts you have viewed per hour of the day.", 
             "nl": "In this table you find the accounts of posts you viewed on Instagram sorted over time. Below, you find visualizations of different parts of this table. First, you find a timeline showing you the number of posts you viewed over time. Next, you find a histogram indicating how many posts you have viewed per hour of the day.", 
         })
-        total_watched = {
-            "title": {
-                "en": "The total number of Instagram posts you viewed over time", 
-                "nl": "The total number of Instagram posts you viewed over time", 
-            },
-            "type": "area",
-            "group": {
-                "column": "Date",
-                "dateFormat": "auto",
-            },
-            "values": [{
-                "label": "Count",
-                "aggregate": "count",
-            }]
-        }
-
-        hour_of_the_day = {
-            "title": {
-                "en": "The total number of Instagram posts you have viewed per hour of the day", 
-                "nl": "The total number of Instagram posts you have viewed per hour of the day", 
-            },
-            "type": "bar",
-            "group": {
-                "column": "Date",
-                "dateFormat": "hour_cycle",
-                "label": "Hour of the day",
-            },
-            "values": [{
-                "label": "Count"
-            }]
-        }
-
-        table =  props.PropsUIPromptConsentFormTable("instagram_posts_viewed", table_title, df, table_description, [total_watched, hour_of_the_day]) 
+        table =  props.PropsUIPromptConsentFormTable("instagram_posts_viewed", table_title, df, table_description, []) 
         tables_to_render.append(table)
 
     df = instagram.videos_watched_to_df(instagram_zip)
@@ -216,23 +184,7 @@ def extract_instagram(instagram_zip: str) -> list[props.PropsUIPromptConsentForm
             "nl": "In this table you find the accounts of videos you watched on Instagram sorted over time. Below, you find a timeline showing you the number of videos you watched over time. ", 
         })
 
-        total_watched = {
-            "title": {
-                "en": "The total number of videos watched on Instagram over time", 
-                "nl": "The total number of videos watched on Instagram over time", 
-            },
-            "type": "area",
-            "group": {
-                "column": "Date",
-                "dateFormat": "auto"
-            },
-            "values": [{
-                "aggregate": "count",
-                "label": "Count"
-            }]
-        }
-
-        table =  props.PropsUIPromptConsentFormTable("instagram_videos_watched", table_title, df, table_description, [total_watched]) 
+        table =  props.PropsUIPromptConsentFormTable("instagram_videos_watched", table_title, df, table_description, []) 
         tables_to_render.append(table)
 
 
@@ -246,16 +198,7 @@ def extract_instagram(instagram_zip: str) -> list[props.PropsUIPromptConsentForm
             "en": "In this table, you find the comments that you left behind on Instagram posts sorted over time. Below, you find a wordcloud, where the size of the word indicates how frequently that word has been used in these comments.", 
             "nl": "In this table, you find the comments that you left behind on Instagram posts sorted over time. Below, you find a wordcloud, where the size of the word indicates how frequently that word has been used in these comments.", 
         })
-        wordcloud = {
-            "title": {
-                "en": "Most common words in comments on posts", 
-                "nl": "Most common words in comments on posts", 
-              },
-            "type": "wordcloud",
-            "textColumn": "Comment",
-            "tokenize": True,
-        }
-        table =  props.PropsUIPromptConsentFormTable("instagram_post_comments", table_title, df, table_description, [wordcloud]) 
+        table =  props.PropsUIPromptConsentFormTable("instagram_post_comments", table_title, df, table_description, []) 
         tables_to_render.append(table)
 
     df = instagram.accounts_not_interested_in_to_df(instagram_zip)
@@ -304,20 +247,11 @@ def extract_instagram(instagram_zip: str) -> list[props.PropsUIPromptConsentForm
             "en": "Instagram liked comments",
             "nl": "Instagram liked comments",
         })
-        wordcloud = {
-            "title": {
-                "en": "Accounts who's comments you liked most", 
-                "nl": "Accounts who's comments you liked most", 
-              },
-            "type": "wordcloud",
-            "textColumn": "Account name",
-            "tokenize": False,
-        }
         table_description = props.Translatable({
             "en": "", 
             "nl": "", 
         })
-        table =  props.PropsUIPromptConsentFormTable("instagram_liked_comments", table_title, df, table_description, [wordcloud]) 
+        table =  props.PropsUIPromptConsentFormTable("instagram_liked_comments", table_title, df, table_description, []) 
         tables_to_render.append(table)
 
     df = instagram.liked_posts_to_df(instagram_zip)
@@ -326,15 +260,6 @@ def extract_instagram(instagram_zip: str) -> list[props.PropsUIPromptConsentForm
             "en": "", 
             "nl": "", 
         })
-        wordcloud = {
-            "title": {
-                "en": "Most liked accounts", 
-                "nl": "Most liked accounts", 
-              },
-            "type": "wordcloud",
-            "textColumn": "Account name",
-            "tokenize": False,
-        }
         table_title = props.Translatable({
             "en": "Instagram liked posts",
             "nl": "Instagram liked posts",
@@ -343,7 +268,7 @@ def extract_instagram(instagram_zip: str) -> list[props.PropsUIPromptConsentForm
             "en": "", 
             "nl": "", 
         })
-        table =  props.PropsUIPromptConsentFormTable("instagram_liked_posts", table_title, df, table_description, [wordcloud]) 
+        table =  props.PropsUIPromptConsentFormTable("instagram_liked_posts", table_title, df, table_description, []) 
         tables_to_render.append(table)
 
     return tables_to_render
