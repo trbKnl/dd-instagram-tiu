@@ -222,7 +222,7 @@ const defaultDonateQuestionLabel = new TextBundle()
   .add('nl', 'Wilt u de bovenstaande gegevens delen voor onderzoek?')
 
 const defaultDonateButtonLabel = new TextBundle()
-  .add('en', 'Yes, share for researcher')
+  .add('en', 'Yes, share for research')
   .add('de', 'Ja, spenden')
   .add('nl', 'Ja, delen voor onderzoek')
 
