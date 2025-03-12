@@ -163,12 +163,12 @@ def extract_instagram(instagram_zip: str) -> list[props.PropsUIPromptConsentForm
     df = instagram.posts_viewed_to_df(instagram_zip)
     if not df.empty:
         table_title = props.Translatable({
-            "en": "Posts viewed on Instagram",
-            "nl": "Posts viewed on Instagram"
+            "en": "",
+            "nl": "Posts bekeken op Instagram"
         })
         table_description = props.Translatable({
-            "en": "In this table you find the accounts of posts you viewed on Instagram sorted over time. Below, you find visualizations of different parts of this table. First, you find a timeline showing you the number of posts you viewed over time. Next, you find a histogram indicating how many posts you have viewed per hour of the day.", 
-            "nl": "In this table you find the accounts of posts you viewed on Instagram sorted over time. Below, you find visualizations of different parts of this table. First, you find a timeline showing you the number of posts you viewed over time. Next, you find a histogram indicating how many posts you have viewed per hour of the day.", 
+            "en": "This table shows Instagram authors and the number of posts you've viewed from each of them.",
+            "nl": "Deze tabel toont Instagram auteurs en het aantal posts dat je van elk van hen hebt bekeken."
         })
         table =  props.PropsUIPromptConsentFormTable("instagram_posts_viewed", table_title, df, table_description, []) 
         tables_to_render.append(table)
@@ -176,14 +176,13 @@ def extract_instagram(instagram_zip: str) -> list[props.PropsUIPromptConsentForm
     df = instagram.videos_watched_to_df(instagram_zip)
     if not df.empty:
         table_title = props.Translatable({
-            "en": "Videos watched on Instagram",
-            "nl": "Videos watched on Instagram"
+            "en": "Instagram videos you've watched",
+            "nl": "Video’s bekeken op Instagram"
         })
         table_description = props.Translatable({
-            "en": "In this table you find the accounts of videos you watched on Instagram sorted over time. Below, you find a timeline showing you the number of videos you watched over time.", 
-            "nl": "In this table you find the accounts of videos you watched on Instagram sorted over time. Below, you find a timeline showing you the number of videos you watched over time. ", 
+           "en": "This table shows Instagram authors and the number of videos you've watched from each of them.",
+           "nl": "Deze tabel toont van welke accounts u Instagram video’s heeft bekeken in de laatste zes maanden en hoeveel."
         })
-
         table =  props.PropsUIPromptConsentFormTable("instagram_videos_watched", table_title, df, table_description, []) 
         tables_to_render.append(table)
 
@@ -191,12 +190,12 @@ def extract_instagram(instagram_zip: str) -> list[props.PropsUIPromptConsentForm
     df = instagram.post_comments_to_df(instagram_zip)
     if not df.empty:
         table_title = props.Translatable({
-            "en": "Comments on Instagram posts",
-            "nl": "Comments on Instagram posts",
+            "en": "Your comments on Instagram posts",
+            "nl": "Jouw reacties op Instagram posts"
         })
         table_description = props.Translatable({
-            "en": "In this table, you find the comments that you left behind on Instagram posts sorted over time. Below, you find a wordcloud, where the size of the word indicates how frequently that word has been used in these comments.", 
-            "nl": "In this table, you find the comments that you left behind on Instagram posts sorted over time. Below, you find a wordcloud, where the size of the word indicates how frequently that word has been used in these comments.", 
+           "en": "This table shows Instagram authors and the number of comments you've made on their posts.",
+           "nl": "Deze tabel toont bij welke accounts u reacties bij posts heeft geplaatst in de laatste zes maanden en hoeveel."
         })
         table =  props.PropsUIPromptConsentFormTable("instagram_post_comments", table_title, df, table_description, []) 
         tables_to_render.append(table)
@@ -204,12 +203,12 @@ def extract_instagram(instagram_zip: str) -> list[props.PropsUIPromptConsentForm
     df = instagram.accounts_not_interested_in_to_df(instagram_zip)
     if not df.empty:
         table_title = props.Translatable({
-            "en": "Instagram accounts not interested in",
-            "nl": "Instagram accounts not interested in"
+            "en": "Instagram accounts you don't want to see",
+            "nl": "Instagram accounts die je niet wilt zien"
         })
         table_description = props.Translatable({
-            "en": "", 
-            "nl": "", 
+            "en": "This table shows Instagram accounts whose content you've chosen not to see anymore.", 
+            "nl": "Deze tabel toont Instagram accounts waarvan je hebt aangegeven dat je hun content niet meer wilt zien."
         })
         table =  props.PropsUIPromptConsentFormTable("instagram_accounts_not_interested_in", table_title, df, table_description) 
         tables_to_render.append(table)
@@ -217,12 +216,12 @@ def extract_instagram(instagram_zip: str) -> list[props.PropsUIPromptConsentForm
     df = instagram.posts_not_interested_in_to_df(instagram_zip)
     if not df.empty:
         table_title = props.Translatable({
-            "en": "Instagram posts not interested in",
-            "nl": "Instagram posts not interested in"
+            "en": "Instagram posts you don't want to see",
+            "nl": "Instagram posts die je niet wilt zien"
         })
         table_description = props.Translatable({
-            "en": "", 
-            "nl": "", 
+            "en": "This table shows Instagram posts you've marked as 'not interested', helping you see what kind of content you prefer not to see.", 
+            "nl": "Deze tabel toont Instagram posts waarvan je hebt aangegeven dat je ze niet wilt zien, wat laat zien welk soort content je liever niet ziet."
         })
         table =  props.PropsUIPromptConsentFormTable("instagram_posts_not_interested_in", table_title, df, table_description) 
         tables_to_render.append(table)
@@ -231,12 +230,12 @@ def extract_instagram(instagram_zip: str) -> list[props.PropsUIPromptConsentForm
     df = instagram.following_to_df(instagram_zip)
     if not df.empty:
         table_title = props.Translatable({
-            "en": "Accounts that you follow on Instagram",
-            "nl": "Accounts that you follow on Instagram"
+            "en": "Accounts you follow on Instagram",
+            "nl": "Accounts die u volgt op Instagram"
         })
         table_description = props.Translatable({
-            "en": "In this table, you find the accounts that you follow on Instagram.", 
-            "nl": "In this table, you find the accounts that you follow on Instagram.", 
+            "en": "This table shows all the Instagram accounts you currently follow.", 
+            "nl": "Deze accounts ben u de laatste zes maanden gaan volgen op Instagram."
         })
         table =  props.PropsUIPromptConsentFormTable("instagram_following", table_title, df, table_description) 
         tables_to_render.append(table)
@@ -244,29 +243,25 @@ def extract_instagram(instagram_zip: str) -> list[props.PropsUIPromptConsentForm
     df = instagram.liked_comments_to_df(instagram_zip)
     if not df.empty:
         table_title = props.Translatable({
-            "en": "Instagram liked comments",
-            "nl": "Instagram liked comments",
+            "en": "Comments you've liked on Instagram",
+            "nl": "Instagram reacties die je leuk vindt"
         })
         table_description = props.Translatable({
-            "en": "", 
-            "nl": "", 
+            "en": "This table shows all the comments you've liked on Instagram posts.", 
+            "nl": "Deze tabel toont alle reacties die je leuk hebt gevonden op Instagram posts."
         })
         table =  props.PropsUIPromptConsentFormTable("instagram_liked_comments", table_title, df, table_description, []) 
         tables_to_render.append(table)
 
     df = instagram.liked_posts_to_df(instagram_zip)
     if not df.empty:
-        table_description = props.Translatable({
-            "en": "", 
-            "nl": "", 
-        })
         table_title = props.Translatable({
-            "en": "Instagram liked posts",
-            "nl": "Instagram liked posts",
+            "en": "Instagram posts you've liked",
+            "nl": "Instagram posts die u een ‘like’ heeft gegeven"
         })
         table_description = props.Translatable({
-            "en": "", 
-            "nl": "", 
+            "en": "This table shows all Instagram posts you've liked.", 
+            "nl": "Deze tabel laat zien aan welke posts u de laatste zes maanden posts een ‘like’ heeft gegeven."
         })
         table =  props.PropsUIPromptConsentFormTable("instagram_liked_posts", table_title, df, table_description, []) 
         tables_to_render.append(table)

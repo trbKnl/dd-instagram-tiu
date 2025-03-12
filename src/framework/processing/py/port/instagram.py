@@ -120,7 +120,7 @@ def accounts_not_interested_in_to_df(instagram_zip: str) -> pd.DataFrame:
             datapoints.append((
                 account_name,
             ))
-        out = pd.DataFrame(datapoints, columns=["Account name"]) #pyright: ignore
+        out = pd.DataFrame(datapoints, columns=["Account naam"]) #pyright: ignore
 
     except Exception as e:
         logger.error("Exception caught: %s", e)
@@ -176,9 +176,9 @@ def posts_viewed_to_df(instagram_zip: str) -> pd.DataFrame:
             datapoints.append((
                 account_name,
             ))
-        out = pd.DataFrame(datapoints, columns=["Author"]) #pyright: ignore
-        out = out.groupby('Author').size().reset_index(name='Count')
-        out = out.sort_values(by="Count", ascending=False).reset_index(drop=True)
+        out = pd.DataFrame(datapoints, columns=["Auteur"]) #pyright: ignore
+        out = out.groupby('Auteur').size().reset_index(name='Aantal')
+        out = out.sort_values(by="Aantal", ascending=False).reset_index(drop=True)
 
     except Exception as e:
         logger.error("Exception caught: %s", e)
@@ -231,9 +231,9 @@ def videos_watched_to_df(instagram_zip: str) -> pd.DataFrame:
             datapoints.append((
                 account_name,
             ))
-        out = pd.DataFrame(datapoints, columns=["Author"]) #pyright: ignore
-        out = out.groupby('Author').size().reset_index(name='Count')
-        out = out.sort_values(by="Count", ascending=False).reset_index(drop=True)
+        out = pd.DataFrame(datapoints, columns=["Auteur"]) #pyright: ignore
+        out = out.groupby('Auteur').size().reset_index(name='Aantal')
+        out = out.sort_values(by="Aantal", ascending=False).reset_index(drop=True)
 
     except Exception as e:
         logger.error("Exception caught: %s", e)
@@ -271,9 +271,9 @@ def post_comments_to_df(instagram_zip: str) -> pd.DataFrame:
             logger.error("Exception caught: %s", e)
             return pd.DataFrame()
 
-    out = pd.DataFrame(datapoints, columns=["Media Owner"]) #pyright: ignore
-    out = out.groupby('Media Owner').size().reset_index(name='Count')
-    out = out.sort_values(by="Count", ascending=False).reset_index(drop=True)
+    out = pd.DataFrame(datapoints, columns=["Account naam"]) #pyright: ignore
+    out = out.groupby('Account naam').size().reset_index(name='Aantal')
+    out = out.sort_values(by="Aantal", ascending=False).reset_index(drop=True)
 
     return out
 
@@ -319,9 +319,9 @@ def liked_comments_to_df(instagram_zip: str) -> pd.DataFrame:
                 eh.fix_latin1_string(eh.find_item(d, "title")),
                 eh.fix_latin1_string(eh.find_item(d, "value")),
             ))
-        out = pd.DataFrame(datapoints, columns=["Account name", "Value"]) #pyright: ignore
-        out = out.groupby(['Account name', 'Value']).size().reset_index(name='Count')
-        out = out.sort_values(by="Count", ascending=False).reset_index(drop=True)
+        out = pd.DataFrame(datapoints, columns=["Account naam", "Waarde"]) #pyright: ignore
+        out = out.groupby(['Account naam', 'Waarde']).size().reset_index(name='Aantal')
+        out = out.sort_values(by="Aantal", ascending=False).reset_index(drop=True)
 
     except Exception as e:
         logger.error("Exception caught: %s", e)
@@ -345,9 +345,9 @@ def liked_posts_to_df(instagram_zip: str) -> pd.DataFrame:
                 eh.fix_latin1_string(eh.find_item(d, "title")),
                 eh.fix_latin1_string(eh.find_item(d, "value")),
             ))
-        out = pd.DataFrame(datapoints, columns=["Account name", "Value"]) #pyright: ignore
-        out = out.groupby(['Account name', 'Value']).size().reset_index(name='Count') #pyright: ignore
-        out = out.sort_values(by="Count", ascending=False).reset_index(drop=True)
+        out = pd.DataFrame(datapoints, columns=["Account naam", "Waarde"]) #pyright: ignore
+        out = out.groupby(['Account naam', 'Waarde']).size().reset_index(name='Aantal') #pyright: ignore
+        out = out.sort_values(by="Aantal", ascending=False).reset_index(drop=True)
 
     except Exception as e:
         logger.error("Exception caught: %s", e)
