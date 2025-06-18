@@ -101,7 +101,7 @@ def generate_file_prompt(extensions: str, multiple: bool = False) -> props.Props
     """
     description = props.Translatable({
         "en": "Please follow the download instructions and choose the file that you stored on your device.",
-        "nl": "Volg de download instructies en kies het bestand dat u opgeslagen heeft op uw apparaat.",
+        "nl": "Volg de download instructies en kies het bestand dat je opgeslagen hebt op je apparaat.",
     })
     if multiple:
         return d3i_props.PropsUIPromptFileInputMultiple(description, extensions)

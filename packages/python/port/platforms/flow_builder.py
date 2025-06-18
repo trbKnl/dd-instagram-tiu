@@ -29,12 +29,12 @@ class FlowBuilder:
         self.UI_TEXT = {
             "submit_file_header": props.Translatable({
                 "en": f"Select your {self.platform_name} file", 
-                "nl": f"Selecteer uw {self.platform_name} bestand"
+                "nl": f"Selecteer jouw {self.platform_name} bestand"
             }),
             
             "review_data_header": props.Translatable({
                 "en": f"Your {self.platform_name} data", 
-                "nl": f"Uw {self.platform_name} gegevens"
+                "nl": f"Jouw {self.platform_name} gegevens"
             }),
             
             "retry_header": props.Translatable({
@@ -44,7 +44,7 @@ class FlowBuilder:
 
             "review_data_description": props.Translatable({
                 "en": f"Below you will find a curated selection of {self.platform_name} data.",
-                "nl": f"Hieronder vindt u een zorgvuldig samengestelde selectie van {self.platform_name} gegevens.",
+                "nl": f"Hieronder vindt je een zorgvuldig samengestelde selectie van jeje  {self.platform_name} gegevens.",
             })
         }
         
@@ -93,7 +93,7 @@ class FlowBuilder:
                 yield ph.donate(f"{self.session_id}", reviewed_data)
             if result.__type__ == "PayloadFalse":
                 value = json.dumps('{"status" : "data_submission declined"}')
-                yield ph.donate(f"{self.session_id}", value)
+                yield ph.donate(f"{self.platform_name}", value)
             
         yield ph.exit(0, "Success")
     

@@ -248,7 +248,6 @@ def post_comments_to_df(instagram_zip: str) -> pd.DataFrame:
 
                 datapoints.append((
                     media_owner,
-                    eh.fix_latin1_string(comment),
                     eh.epoch_to_iso(timestamp)
                 ))
             i += 1
@@ -257,7 +256,7 @@ def post_comments_to_df(instagram_zip: str) -> pd.DataFrame:
             logger.error("Exception caught: %s", e)
             return pd.DataFrame()
 
-    out = pd.DataFrame(datapoints, columns=["Media Owner", "Comment", "Date"]) # pyright: ignore
+    out = pd.DataFrame(datapoints, columns=["Account naam", "Date"]) # pyright: ignore
 
     return out
 
@@ -277,10 +276,9 @@ def following_to_df(instagram_zip: str) -> pd.DataFrame:
             d = eh.dict_denester(item)
             datapoints.append((
                 eh.fix_latin1_string(eh.find_item(d, "value")),
-                eh.find_item(d, "href"),
                 eh.epoch_to_iso(eh.find_item(d, "timestamp"))
             ))
-        out = pd.DataFrame(datapoints, columns=["Account", "Link", "Date"]) # pyright: ignore
+        out = pd.DataFrame(datapoints, columns=["Account", "Date"]) # pyright: ignore
         out = out.sort_values(by="Date", key=eh.sort_isotimestamp_empty_timestamp_last)
 
     except Exception as e:
@@ -305,10 +303,9 @@ def liked_comments_to_df(instagram_zip: str) -> pd.DataFrame:
             datapoints.append((
                 eh.fix_latin1_string(eh.find_item(d, "title")),
                 eh.fix_latin1_string(eh.find_item(d, "value")),
-                eh.find_items(d, "href"),
                 eh.epoch_to_iso(eh.find_item(d, "timestamp"))
             ))
-        out = pd.DataFrame(datapoints, columns=["Account name", "Value", "Link", "Date"]) # pyright: ignore
+        out = pd.DataFrame(datapoints, columns=["Account name", "Waarde", "Date"]) # pyright: ignore
         out = out.sort_values(by="Date", key=eh.sort_isotimestamp_empty_timestamp_last)
 
     except Exception as e:
@@ -332,10 +329,9 @@ def liked_posts_to_df(instagram_zip: str) -> pd.DataFrame:
             datapoints.append((
                 eh.fix_latin1_string(eh.find_item(d, "title")),
                 eh.fix_latin1_string(eh.find_item(d, "value")),
-                eh.find_items(d, "href"),
                 eh.epoch_to_iso(eh.find_item(d, "timestamp"))
             ))
-        out = pd.DataFrame(datapoints, columns=["Account name", "Value", "Link", "Date"]) # pyright: ignore
+        out = pd.DataFrame(datapoints, columns=["Account name", "Value", "Date"]) # pyright: ignore
         out = out.sort_values(by="Date", key=eh.sort_isotimestamp_empty_timestamp_last)
 
     except Exception as e:
@@ -428,19 +424,9 @@ def extraction(instagram_zip: str) -> list[d3i_props.PropsUIPromptConsentFormTab
             }),
             description=props.Translatable({
                 "en": "In this table, you find the comments that you left behind on Instagram posts sorted over time. Below, you find a wordcloud, where the size of the word indicates how frequently that word has been used in these comments.",
-                "nl": "In deze tabel zie je de reacties die je hebt achtergelaten op Instagram-berichten, gesorteerd op tijd. Hieronder zie je een woordwolk waarin de grootte van een woord aangeeft hoe vaak het is gebruikt in deze reacties."
+                "nl": "In deze tabel zie je de namen van auteurs onder wiens posts je comments hebt achter gelaten." 
             }),
-            visualizations=[
-                {
-                    "title": {
-                        "en": "Most common words in comments on posts",
-                        "nl": "Meest gebruikte woorden in reacties op berichten"
-                    },
-                    "type": "wordcloud",
-                    "textColumn": "Comment",
-                    "tokenize": True,
-                }
-            ]
+            visualizations=[]
         ),
         d3i_props.PropsUIPromptConsentFormTableViz(
             id="instagram_accounts_not_interested_in",
@@ -455,28 +441,17 @@ def extraction(instagram_zip: str) -> list[d3i_props.PropsUIPromptConsentFormTab
             }),
         ),
         d3i_props.PropsUIPromptConsentFormTableViz(
-            id="instagram_ads_viewed",
-            data_frame=ads_viewed_to_df(instagram_zip),
-            title=props.Translatable({
-                "en": "Ads you viewed on Instagram",
-                "nl": "Advertenties die je op Instagram hebt bekeken"
-            }),
-            description=props.Translatable({
-                "en": "In this table, you find the ads that you viewed on Instagram sorted over time.",
-                "nl": "In deze tabel zie je de advertenties die je op Instagram hebt bekeken, gesorteerd op tijd."
-            }),
-        ),
-        d3i_props.PropsUIPromptConsentFormTableViz(
             id="instagram_posts_not_interested_in",
             data_frame=posts_not_interested_in_to_df(instagram_zip),
+
             title=props.Translatable({
                 "en": "Instagram posts not interested in",
                 "nl": "Instagram-berichten waarin je geen interesse hebt"
             }),
             description=props.Translatable({
-                "en": "",
-                "nl": ""
-            }),
+            "en": "This table shows Instagram posts you've marked as 'not interested', helping you see what kind of content you prefer not to see.", 
+            "nl": "Deze tabel toont Instagram posts waarvan je hebt aangegeven dat je ze niet wilt zien, wat laat zien welk soort content je liever niet ziet."
+        })
         ),
         d3i_props.PropsUIPromptConsentFormTableViz(
             id="instagram_following",
