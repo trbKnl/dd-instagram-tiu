@@ -10,7 +10,7 @@ function App() {
       <ScriptHostComponent
         workerUrl="./d3i_py_worker.js"
         //standalone={process.env.NODE_ENV !== "production"}
-        standalone={false}
+        standalone={true}
         factories={[
           new DataSubmissionPageFactory({
             promptFactories: [
