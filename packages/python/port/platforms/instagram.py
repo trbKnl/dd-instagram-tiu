@@ -351,7 +351,7 @@ def extraction(instagram_zip: str) -> list[d3i_props.PropsUIPromptConsentFormTab
             }),
             description=props.Translatable({
                 "en": "In this table you find the accounts of posts you viewed on Instagram sorted over time. Below, you find visualizations of different parts of this table. First, you find a timeline showing you the number of posts you viewed over time. Next, you find a histogram indicating how many posts you have viewed per hour of the day.",
-                "nl": "In deze tabel zie je de accounts van berichten die je op Instagram hebt bekeken, gesorteerd op tijd. Hieronder vind je visualisaties van verschillende onderdelen van deze tabel. Eerst zie je een tijdlijn met het aantal berichten dat je in de loop van de tijd hebt bekeken. Daarna zie je een histogram dat aangeeft hoeveel berichten je per uur van de dag hebt bekeken."
+                "nl": "In deze tabel zie je de accounts van berichten die je op Instagram hebt bekeken, gesorteerd op tijd. Daarna zie je een tijdlijn met het aantal berichten dat je in de loop van de tijd hebt bekeken. Daarna zie je een histogram dat aangeeft hoeveel berichten je per uur van de dag hebt bekeken."
             }),
             visualizations=[
                 {
@@ -395,7 +395,7 @@ def extraction(instagram_zip: str) -> list[d3i_props.PropsUIPromptConsentFormTab
             }),
             description=props.Translatable({
                 "en": "In this table you find the accounts of videos you watched on Instagram sorted over time. Below, you find a timeline showing you the number of videos you watched over time.",
-                "nl": "In deze tabel zie je de accounts van video's die je op Instagram hebt bekeken, gesorteerd op tijd. Hieronder zie je een tijdlijn met het aantal video's dat je in de loop van de tijd hebt bekeken."
+                "nl": "In deze tabel zie je de accounts van video's die je op Instagram hebt bekeken, gesorteerd op tijd. Daaronder zie je een tijdlijn met het aantal video's dat je in de loop van de tijd hebt bekeken."
             }),
             visualizations=[
                 {
@@ -424,7 +424,7 @@ def extraction(instagram_zip: str) -> list[d3i_props.PropsUIPromptConsentFormTab
             }),
             description=props.Translatable({
                 "en": "In this table, you find the comments that you left behind on Instagram posts sorted over time. Below, you find a wordcloud, where the size of the word indicates how frequently that word has been used in these comments.",
-                "nl": "In deze tabel zie je de namen van auteurs onder wiens posts je comments hebt achter gelaten." 
+                "nl": "In deze tabel zie je de namen van auteurs onder wiens posts je comments hebt achtergelaten." 
             }),
             visualizations=[]
         ),

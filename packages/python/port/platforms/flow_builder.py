@@ -44,7 +44,7 @@ class FlowBuilder:
 
             "review_data_description": props.Translatable({
                 "en": f"Below you will find a curated selection of {self.platform_name} data.",
-                "nl": f"Hieronder vindt je een zorgvuldig samengestelde selectie van jeje  {self.platform_name} gegevens.",
+                "nl": f"Hieronder vind je een zorgvuldig samengestelde selectie van je je  {self.platform_name} gegevens.",
             })
         }
         

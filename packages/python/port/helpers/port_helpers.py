@@ -128,7 +128,7 @@ def generate_review_data_prompt(
     """
     donate_question = props.Translatable({
        "en": "Do you want to share this data for research?",
-       "nl": "Wilt u deze gegevens delen voor onderzoek?"
+       "nl": "Wil je deze gegevens delen voor onderzoek?"
     })
 
     donate_button = props.Translatable({
